@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>web-ingles — Technical English SRS Trainer</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <!-- NSDR Overlay (hidden by default) -->
+  <div id="nsdr-overlay" class="nsdr-overlay hidden">
+    <div class="nsdr-content">
+      <h2 class="nsdr-title">NSDR · Consolidación</h2>
+      <p class="nsdr-sub">5 minutos de pausa para fijar conexiones sinápticas</p>
+      <div class="breathing-circle" id="breathing-circle"></div>
+      <p class="breathing-label" id="breathing-label">Inhala</p>
+      <div class="nsdr-timer" id="nsdr-timer">05:00</div>
+      <p class="nsdr-hint">Encuentra una posición cómoda. Cierra los ojos.</p>
+      <audio id="nsdr-audio" loop preload="auto">
+        <source src="audio/ambient-alpha.mp3" type="audio/mpeg">
+      </audio>
+    </div>
+  </div>
+
+  <!-- Main App Container -->
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="logo">web-ingles</h1>
+      <div class="header-stats">
+        <span id="streak-counter" class="stat-badge">🔥 0</span>
+        <span id="session-timer" class="stat-badge">⏱ 00:00</span>
+        <span id="review-count" class="stat-badge">📊 0</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab active" data-tab="recall">🧠 Evocación</button>
+      <button class="tab" data-tab="daily">🎲 Daily Challenge</button>
+      <button class="tab" data-tab="shadowing">🎤 Shadowing</button>
+      <button class="tab" data-tab="stats">📈 Progreso</button>
+    </nav>
+
+    <!-- Tab: Active Recall + SRS -->
+    <section id="tab-recall" class="tab-content active">
+      <div class="recall-container">
+        <div id="recall-intro" class="recall-intro">
+          <p class="recall-instruction">Traduce la siguiente frase. Pulsa <strong>Trigger</strong> en menos de 3 segundos para revelar la respuesta.</p>
+        </div>
+        <div id="recall-challenge" class="recall-challenge hidden">
+          <div class="chunk-spanish" id="chunk-spanish"></div>
+          <div class="recall-timer-ring" id="recall-ring">
+            <svg viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="ring-progress" id="ring-progress" cx="60" cy="60" r="52"/>
+            </svg>
+            <span class="ring-countdown" id="ring-countdown">3</span>
+          </div>
+          <button id="btn-trigger" class="btn btn-trigger">⚡ Trigger</button>
+          <div id="recall-reveal" class="recall-reveal hidden">
+            <p class="chunk-english" id="chunk-english"></p>
+            <div class="self-eval">
+              <button class="btn btn-easy" data-rating="easy">✅ Easy</button>
+              <button class="btn btn-hard" data-rating="hard">🤔 Hard</button>
+              <button class="btn btn-forgot" data-rating="forgot">❌ Forgot</button>
+            </div>
+          </div>
+        </div>
+        <div id="recall-done" class="recall-done hidden">
+          <p>🎉 ¡Ronda completada!</p>
+          <p id="recall-summary"></p>
+          <button class="btn btn-primary" id="btn-next-round">Siguiente ronda</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab: Daily Random Challenge -->
+    <section id="tab-daily" class="tab-content">
+      <div class="daily-container">
+        <h2 class="section-title">Daily Random Challenge</h2>
+        <p class="section-desc">Combate la habituación neuronal con combinaciones impredecibles.</p>
+        <div class="daily-vars" id="daily-vars">
+          <div class="var-card" id="var-role"><span class="var-label">Rol/Contexto</span><span class="var-value">—</span></div>
+          <div class="var-card" id="var-tech"><span class="var-label">Entorno Técnico</span><span class="var-value">—</span></div>
+          <div class="var-card" id="var-stress"><span class="var-label">Restricción</span><span class="var-value">—</span></div>
+        </div>
+        <div class="daily-challenge-box" id="daily-challenge-box">
+          <p id="daily-prompt">Generando desafío...</p>
+        </div>
+        <button class="btn btn-primary" id="btn-daily-shuffle">🎲 Nuevo Desafío</button>
+        <div class="daily-response">
+          <textarea id="daily-response-input" placeholder="Escribe tu respuesta en inglés..."></textarea>
+          <button class="btn btn-secondary" id="btn-daily-check">✅ Verificar</button>
+          <div id="daily-feedback" class="daily-feedback hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab: Shadowing + Speech -->
+    <section id="tab-shadowing" class="tab-content">
+      <div class="shadowing-container">
+        <h2 class="section-title">Estación de Shadowing</h2>
+        <p class="section-desc">Escucha, repite, y corrige tu pronunciación en tiempo real.</p>
+        <div class="shadowing-card">
+          <p class="target-phrase" id="target-phrase"></p>
+          <button class="btn btn-secondary" id="btn-play-tts">🔊 Escuchar frase</button>
+        </div>
+        <div class="shadowing-recorder">
+          <button class="btn btn-record" id="btn-record">🎤 Grabar</button>
+          <div class="recording-indicator hidden" id="recording-indicator">
+            <span class="pulse-dot"></span> Grabando...
+          </div>
+        </div>
+        <div class="shadowing-result hidden" id="shadowing-result">
+          <p class="transcribed-text" id="transcribed-text"></p>
+          <div class="error-highlight" id="error-highlight"></div>
+          <div class="phonetic-errors" id="phonetic-errors"></div>
+        </div>
+        <button class="btn btn-primary" id="btn-next-shadow">Siguiente frase →</button>
+      </div>
+    </section>
+
+    <!-- Tab: Stats / Progress -->
+    <section id="tab-stats" class="tab-content">
+      <div class="stats-container">
+        <h2 class="section-title">Progreso de Aprendizaje</h2>
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-number" id="stat-total">0</span><span class="stat-label">Chunks totales</span></div>
+          <div class="stat-card"><span class="stat-number" id="stat-mastered">0</span><span class="stat-label">Dominados</span></div>
+          <div class="stat-card"><span class="stat-number" id="stat-due">0</span><span class="stat-label">Pendientes hoy</span></div>
+          <div class="stat-card"><span class="stat-number" id="stat-streak">0</span><span class="stat-label">Racha 🔥</span></div>
+        </div>
+        <div class="stats-chart" id="stats-chart"></div>
+        <button class="btn btn-danger" id="btn-reset-data">🗑 Resetear datos</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/repository.js"></script>
+  <script src="js/srsEngine.js"></script>
+  <script src="js/speechEngine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
