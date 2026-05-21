@@ -7,134 +7,152 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-  <!-- NSDR Overlay (hidden by default) -->
-  <div id="nsdr-overlay" class="nsdr-overlay hidden">
-    <div class="nsdr-content">
-      <h2 class="nsdr-title">NSDR · Consolidación</h2>
-      <p class="nsdr-sub">5 minutos de pausa para fijar conexiones sinápticas</p>
-      <div class="breathing-circle" id="breathing-circle"></div>
-      <p class="breathing-label" id="breathing-label">Inhala</p>
-      <div class="nsdr-timer" id="nsdr-timer">05:00</div>
-      <p class="nsdr-hint">Encuentra una posición cómoda. Cierra los ojos.</p>
-      <audio id="nsdr-audio" loop preload="auto">
-        <source src="audio/ambient-alpha.mp3" type="audio/mpeg">
-      </audio>
+
+  <!-- ============================================================
+       Phase Indicator Bar
+       ============================================================ -->
+  <div id="phase-bar" class="phase-bar">
+    <div class="phase-track">
+      <div class="phase-segment active" id="phase-seg-1">
+        <span class="phase-icon">🧠</span>
+        <span class="phase-label">Gym SRS</span>
+      </div>
+      <div class="phase-segment" id="phase-seg-2">
+        <span class="phase-icon">💼</span>
+        <span class="phase-label">Simulador</span>
+      </div>
+      <div class="phase-segment" id="phase-seg-3">
+        <span class="phase-icon">🧘</span>
+        <span class="phase-label">Consolidación</span>
+      </div>
+    </div>
+    <div class="phase-stats">
+      <span id="streak-counter">🔥 0</span>
+      <span id="session-timer">⏱ 00:00</span>
+      <span id="review-count">📊 0</span>
+      <button id="btn-stats-overlay" class="btn-icon" title="Progreso">📈</button>
     </div>
   </div>
 
-  <!-- Main App Container -->
-  <div id="app" class="app-container">
-    <!-- Header -->
-    <header class="header">
-      <h1 class="logo">web-ingles</h1>
-      <div class="header-stats">
-        <span id="streak-counter" class="stat-badge">🔥 0</span>
-        <span id="session-timer" class="stat-badge">⏱ 00:00</span>
-        <span id="review-count" class="stat-badge">📊 0</span>
+  <!-- ============================================================
+       Stats Overlay (hidden by default)
+       ============================================================ -->
+  <div id="stats-overlay" class="stats-overlay hidden">
+    <div class="stats-overlay-content">
+      <button id="btn-close-stats" class="btn-close">✕</button>
+      <h2>📈 Progreso de Aprendizaje</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-number" id="stat-total">0</span><span class="stat-label">Chunks totales</span></div>
+        <div class="stat-card"><span class="stat-number" id="stat-mastered">0</span><span class="stat-label">Dominados</span></div>
+        <div class="stat-card"><span class="stat-number" id="stat-due">0</span><span class="stat-label">Pendientes hoy</span></div>
+        <div class="stat-card"><span class="stat-number" id="stat-streak">0</span><span class="stat-label">Racha 🔥</span></div>
       </div>
-    </header>
+      <div class="stats-chart" id="stats-chart"></div>
+      <button class="btn btn-danger" id="btn-reset-data">🗑 Resetear datos</button>
+    </div>
+  </div>
 
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs">
-      <button class="tab active" data-tab="recall">🧠 Evocación</button>
-      <button class="tab" data-tab="daily">🎲 Daily Challenge</button>
-      <button class="tab" data-tab="shadowing">🎤 Shadowing</button>
-      <button class="tab" data-tab="stats">📈 Progreso</button>
-    </nav>
-
-    <!-- Tab: Active Recall + SRS -->
-    <section id="tab-recall" class="tab-content active">
-      <div class="recall-container">
-        <div id="recall-intro" class="recall-intro">
-          <p class="recall-instruction">Traduce la siguiente frase. Pulsa <strong>Trigger</strong> en menos de 3 segundos para revelar la respuesta.</p>
+  <!-- ============================================================
+       PHASE 1: SRS Gym (Min 0–10)
+       ============================================================ -->
+  <section id="phase-gym" class="phase-container active">
+    <div class="gym-card" id="gym-card">
+      <!-- Card front: spanish + trigger -->
+      <div class="gym-front" id="gym-front">
+        <p class="gym-prompt">Traduce la siguiente frase:</p>
+        <div class="gym-spanish" id="gym-spanish"></div>
+        <div class="gym-timer-ring" id="gym-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"/>
+            <circle class="ring-progress" id="ring-progress" cx="60" cy="60" r="52"/>
+          </svg>
+          <span class="ring-countdown" id="ring-countdown">3</span>
         </div>
-        <div id="recall-challenge" class="recall-challenge hidden">
-          <div class="chunk-spanish" id="chunk-spanish"></div>
-          <div class="recall-timer-ring" id="recall-ring">
-            <svg viewBox="0 0 120 120">
-              <circle class="ring-bg" cx="60" cy="60" r="52"/>
-              <circle class="ring-progress" id="ring-progress" cx="60" cy="60" r="52"/>
-            </svg>
-            <span class="ring-countdown" id="ring-countdown">3</span>
-          </div>
-          <button id="btn-trigger" class="btn btn-trigger">⚡ Trigger</button>
-          <div id="recall-reveal" class="recall-reveal hidden">
-            <p class="chunk-english" id="chunk-english"></p>
-            <div class="self-eval">
-              <button class="btn btn-easy" data-rating="easy">✅ Easy</button>
-              <button class="btn btn-hard" data-rating="hard">🤔 Hard</button>
-              <button class="btn btn-forgot" data-rating="forgot">❌ Forgot</button>
-            </div>
-          </div>
-        </div>
-        <div id="recall-done" class="recall-done hidden">
-          <p>🎉 ¡Ronda completada!</p>
-          <p id="recall-summary"></p>
-          <button class="btn btn-primary" id="btn-next-round">Siguiente ronda</button>
-        </div>
+        <button id="btn-trigger" class="btn btn-trigger">⚡ Trigger</button>
       </div>
-    </section>
 
-    <!-- Tab: Daily Random Challenge -->
-    <section id="tab-daily" class="tab-content">
-      <div class="daily-container">
-        <h2 class="section-title">Daily Random Challenge</h2>
-        <p class="section-desc">Combate la habituación neuronal con combinaciones impredecibles.</p>
-        <div class="daily-vars" id="daily-vars">
-          <div class="var-card" id="var-role"><span class="var-label">Rol/Contexto</span><span class="var-value">—</span></div>
-          <div class="var-card" id="var-tech"><span class="var-label">Entorno Técnico</span><span class="var-value">—</span></div>
-          <div class="var-card" id="var-stress"><span class="var-label">Restricción</span><span class="var-value">—</span></div>
-        </div>
-        <div class="daily-challenge-box" id="daily-challenge-box">
-          <p id="daily-prompt">Generando desafío...</p>
-        </div>
-        <button class="btn btn-primary" id="btn-daily-shuffle">🎲 Nuevo Desafío</button>
-        <div class="daily-response">
-          <textarea id="daily-response-input" placeholder="Escribe tu respuesta en inglés..."></textarea>
-          <button class="btn btn-secondary" id="btn-daily-check">✅ Verificar</button>
-          <div id="daily-feedback" class="daily-feedback hidden"></div>
-        </div>
-      </div>
-    </section>
+      <!-- Card back: english + speech validation + self-eval -->
+      <div class="gym-back hidden" id="gym-back">
+        <p class="gym-english" id="gym-english"></p>
+        <p class="gym-phoneme" id="gym-phoneme"></p>
 
-    <!-- Tab: Shadowing + Speech -->
-    <section id="tab-shadowing" class="tab-content">
-      <div class="shadowing-container">
-        <h2 class="section-title">Estación de Shadowing</h2>
-        <p class="section-desc">Escucha, repite, y corrige tu pronunciación en tiempo real.</p>
-        <div class="shadowing-card">
-          <p class="target-phrase" id="target-phrase"></p>
-          <button class="btn btn-secondary" id="btn-play-tts">🔊 Escuchar frase</button>
-        </div>
-        <div class="shadowing-recorder">
-          <button class="btn btn-record" id="btn-record">🎤 Grabar</button>
-          <div class="recording-indicator hidden" id="recording-indicator">
+        <div class="gym-speech">
+          <button id="btn-record-gym" class="btn btn-speech">🎤 Validar pronunciación</button>
+          <span class="recording-indicator hidden" id="gym-rec-indicator">
             <span class="pulse-dot"></span> Grabando...
+          </span>
+          <div class="speech-result hidden" id="gym-speech-result">
+            <p class="transcribed-text" id="gym-transcribed"></p>
+            <div class="error-highlight" id="gym-error-highlight"></div>
+            <div class="phonetic-errors" id="gym-phonetic-errors"></div>
           </div>
         </div>
-        <div class="shadowing-result hidden" id="shadowing-result">
-          <p class="transcribed-text" id="transcribed-text"></p>
-          <div class="error-highlight" id="error-highlight"></div>
-          <div class="phonetic-errors" id="phonetic-errors"></div>
-        </div>
-        <button class="btn btn-primary" id="btn-next-shadow">Siguiente frase →</button>
-      </div>
-    </section>
 
-    <!-- Tab: Stats / Progress -->
-    <section id="tab-stats" class="tab-content">
-      <div class="stats-container">
-        <h2 class="section-title">Progreso de Aprendizaje</h2>
-        <div class="stats-grid">
-          <div class="stat-card"><span class="stat-number" id="stat-total">0</span><span class="stat-label">Chunks totales</span></div>
-          <div class="stat-card"><span class="stat-number" id="stat-mastered">0</span><span class="stat-label">Dominados</span></div>
-          <div class="stat-card"><span class="stat-number" id="stat-due">0</span><span class="stat-label">Pendientes hoy</span></div>
-          <div class="stat-card"><span class="stat-number" id="stat-streak">0</span><span class="stat-label">Racha 🔥</span></div>
+        <div class="self-eval">
+          <p class="eval-prompt">¿Qué tal ha ido?</p>
+          <div class="eval-buttons">
+            <button class="btn btn-easy" data-rating="easy">✅ Easy</button>
+            <button class="btn btn-hard" data-rating="hard">🤔 Hard</button>
+            <button class="btn btn-forgot" data-rating="forgot">❌ Forgot</button>
+          </div>
         </div>
-        <div class="stats-chart" id="stats-chart"></div>
-        <button class="btn btn-danger" id="btn-reset-data">🗑 Resetear datos</button>
       </div>
-    </section>
+    </div>
+
+    <!-- End-of-round message -->
+    <div class="gym-done hidden" id="gym-done">
+      <p>🎉 ¡Ronda completada!</p>
+      <p id="gym-summary"></p>
+      <p class="gym-next-phase">El simulador comenzará cuando el temporizador llegue a 10:00</p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PHASE 2: Meeting Simulator (Min 10–25)
+       ============================================================ -->
+  <section id="phase-simulator" class="phase-container">
+    <div class="sim-container">
+      <h2 class="section-title">💼 Simulador de Reunión</h2>
+      <p class="section-desc">Responde al hilo del proveedor usando los 3 chunks asignados hoy.</p>
+
+      <!-- Daily assigned chunks -->
+      <div class="sim-chunks" id="sim-chunks">
+        <p class="sim-chunks-label">🗂 Chunks obligatorios de hoy:</p>
+        <div class="sim-chunk-list" id="sim-chunk-list"></div>
+      </div>
+
+      <!-- Email/prompt thread -->
+      <div class="sim-thread" id="sim-thread">
+        <!-- Dynamically filled -->
+      </div>
+
+      <!-- User response -->
+      <div class="sim-response">
+        <textarea id="sim-response-input" placeholder="Escribe tu respuesta en inglés (usa los 3 chunks de hoy)..."></textarea>
+        <div class="sim-response-actions">
+          <button class="btn btn-primary" id="btn-sim-check">✅ Verificar respuesta</button>
+          <button class="btn btn-secondary" id="btn-sim-new">🔄 Nuevo hilo</button>
+        </div>
+        <div class="sim-feedback hidden" id="sim-feedback"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PHASE 3: Consolidation Lockdown (Min 25–30)
+       ============================================================ -->
+  <div id="phase-lockdown" class="lockdown-overlay hidden">
+    <div class="lockdown-content">
+      <h2 class="lockdown-title">🧘 Consolidación NSDR</h2>
+      <p class="lockdown-sub">5 minutos de reposo cognitivo para fijar conexiones sinápticas</p>
+      <div class="breathing-circle" id="breathing-circle"></div>
+      <p class="breathing-label" id="breathing-label">Inhala</p>
+      <div class="lockdown-timer" id="lockdown-timer">05:00</div>
+      <p class="lockdown-hint">Encuentra una posición cómoda. Cierra los ojos.<br>Los inputs están bloqueados.</p>
+      <audio id="nsdr-audio" loop preload="auto">
+        <!-- Optional: add audio/ambient-alpha.mp3 -->
+      </audio>
+    </div>
   </div>
 
   <script src="js/repository.js"></script>
