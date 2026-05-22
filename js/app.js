@@ -1,11 +1,17 @@
 /*
- * app.js — State Machine: Gym SRS → Meeting Simulator → Consolidation Lockdown
+ * app.js — Adaptive SRS: Gym → Simulator → Lockdown
  *
  * Phase timing:
- *   0-10 min  → Phase 1: SRS Gym (single large card + speech validation)
- *   10-25 min → Phase 2: Meeting Simulator (email threads + mandatory chunks)
- *   25-30 min → Phase 3: Consolidation Lockdown (forced rest, all inputs disabled)
+ *   0-10 min  → Phase 1: SRS Gym (star rating 1-10, adaptive difficulty)
+ *   10-25 min → Phase 2: Meeting Simulator (difficulty-matched threads)
+ *   25-30 min → Phase 3: Consolidation Lockdown
  *   After 30 min → Reset to Phase 1
+ *
+ * New features:
+ *   - 1-10 star rating with hover preview
+ *   - Adaptive level system (1-4) with auto-adjustment
+ *   - Level selector in stats overlay
+ *   - Per-level progress tracking
  */
 
 const App = {
@@ -23,6 +29,8 @@ const App = {
     roundComplete: false,
     dailyChunks: [],
     currentThread: null,
+    lastAdaptiveMessage: null,
+    hoverStars: 0,
   },
 
   /* ======================== INIT ======================== */
@@ -35,6 +43,7 @@ const App = {
     this._startRecallRound();
     this._updatePhaseBar();
     this._updateHeaderStats();
+    this._updateLevelBadge();
   },
 
   /* ======================== SESSION TIMER ======================== */
@@ -112,15 +121,90 @@ const App = {
   /* ======================== UI BINDINGS ======================== */
   _bindUI() {
     document.getElementById('btn-trigger').addEventListener('click', () => this._revealAnswer());
-    document.querySelectorAll('.self-eval button').forEach(btn => {
-      btn.addEventListener('click', () => this._evaluateRecall(btn.dataset.rating));
+    
+    // Star rating buttons
+    document.querySelectorAll('.star-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const stars = parseInt(btn.dataset.stars);
+        this._evaluateRecall(stars);
+      });
+      btn.addEventListener('mouseenter', () => this._hoverStars(parseInt(btn.dataset.stars)));
+      btn.addEventListener('mouseleave', () => this._hoverStars(0));
     });
+
     document.getElementById('btn-record-gym').addEventListener('click', () => this._toggleGymRecording());
     document.getElementById('btn-sim-check').addEventListener('click', () => this._checkSimResponse());
     document.getElementById('btn-sim-new').addEventListener('click', () => this._loadMeetingThread());
     document.getElementById('btn-stats-overlay').addEventListener('click', () => this._toggleStats());
     document.getElementById('btn-close-stats').addEventListener('click', () => this._toggleStats());
     document.getElementById('btn-reset-data').addEventListener('click', () => this._resetData());
+
+    // Level selector buttons in stats overlay
+    document.querySelectorAll('.btn-level').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const level = parseInt(btn.dataset.level);
+        this._setManualLevel(level);
+      });
+    });
+  },
+
+  /* ======================== STAR RATING UI ======================== */
+  _hoverStars(stars) {
+    this.state.hoverStars = stars;
+    const buttons = document.querySelectorAll('.star-btn');
+    const label = document.getElementById('star-label');
+    
+    buttons.forEach((btn, idx) => {
+      const btnStars = parseInt(btn.dataset.stars);
+      if (btnStars <= stars) {
+        btn.classList.add('hover');
+      } else {
+        btn.classList.remove('hover');
+      }
+    });
+
+    const labels = {
+      0: 'Pulsa una estrella para puntuar',
+      1: '1 — Olvidado por completo',
+      2: '2 — Muy difícil, casi olvidado',
+      3: '3 — Difícil, con mucha duda',
+      4: '4 — Regular, no muy seguro',
+      5: '5 — Aceptable, con dificultad',
+      6: '6 — Bien, algo de esfuerzo',
+      7: '7 — Bastante bien, pequeña duda',
+      8: '8 — Muy bien, casi perfecto',
+      9: '9 — Excelente, mínimo error',
+      10: '10 — Perfecto, sin esfuerzo'
+    };
+    label.textContent = labels[stars];
+  },
+
+  _clearStarHover() {
+    this.state.hoverStars = 0;
+    document.querySelectorAll('.star-btn').forEach(btn => btn.classList.remove('hover'));
+    document.getElementById('star-label').textContent = 'Pulsa una estrella para puntuar';
+  },
+
+  /* ======================== LEVEL INDICATOR ======================== */
+  _updateLevelBadge() {
+    const badge = document.getElementById('level-badge');
+    if (!badge) return;
+    const info = SRS.getLevelInfo(this.srsState);
+    badge.textContent = `⭐ Nivel ${info.currentLevel}`;
+    badge.title = `Nivel ${info.currentLevel} / Desbloqueado: ${info.maxUnlocked}. Media reciente: ${info.recentAvg || 'N/A'}/10`;
+  },
+
+  _setManualLevel(level) {
+    SRS.setUserLevel(this.srsState, level);
+    SRS.save(this.srsState);
+    this._updateLevelBadge();
+    this._renderLevelSelector();
+    this._startRecallRound(); // Restart with new level
+    
+    // Show confirmation
+    const info = document.getElementById('level-adaptive-info');
+    info.textContent = `✅ Nivel cambiado a ${level}. Las nuevas tarjetas se ajustarán.`;
+    info.className = 'level-adaptive-info level-changed';
   },
 
   /* ======================== PHASE 1: SRS GYM ======================== */
@@ -133,12 +217,20 @@ const App = {
 
     document.getElementById('gym-done').classList.add('hidden');
     document.getElementById('gym-card').classList.remove('hidden');
+    this._clearStarHover();
+    this._hideAdaptiveMessage();
 
     if (this.state.recallBatch.length === 0) {
       this.state.roundComplete = true;
       document.getElementById('gym-card').classList.add('hidden');
       document.getElementById('gym-done').classList.remove('hidden');
-      document.getElementById('gym-summary').textContent = '¡No hay tarjetas pendientes! Descansa o espera al simulador.';
+      const levelInfo = SRS.getLevelInfo(this.srsState);
+      if (levelInfo.currentLevel < 4) {
+        document.getElementById('gym-summary').textContent = 
+          `¡No hay tarjetas pendientes en Nivel ${levelInfo.currentLevel}! Prueba subiendo de nivel en 📈 Progreso.`;
+      } else {
+        document.getElementById('gym-summary').textContent = '¡No hay tarjetas pendientes! Descansa o espera al simulador.';
+      }
     } else {
       this._showGymCard();
     }
@@ -151,6 +243,10 @@ const App = {
     document.getElementById('gym-phoneme').textContent =
       item.chunk.critical_phoneme ? `🔊 Enfócate en: ${item.chunk.critical_phoneme}` : '';
 
+    // Show difficulty indicator
+    const diffLabels = { 1: '⭐ Principiante', 2: '⭐⭐ Intermedio', 3: '⭐⭐⭐ Avanzado', 4: '⭐⭐⭐⭐ Experto' };
+    const diffLabel = diffLabels[item.chunk.difficulty] || '';
+    
     document.getElementById('btn-trigger').disabled = false;
     document.getElementById('gym-back').classList.add('hidden');
     document.getElementById('gym-front').classList.remove('hidden');
@@ -195,15 +291,24 @@ const App = {
     document.getElementById('gym-back').classList.remove('hidden');
   },
 
-  _evaluateRecall(rating) {
+  _evaluateRecall(stars) {
     if (!this.state.recallAnswered) return;
     const item = this.state.recallBatch[this.state.recallIndex];
-    const updatedCard = SRS.updateCard(item.card, rating);
-    this.srsState.cards[item.chunk.id] = updatedCard;
+    
+    // Update card with new star-based algorithm
+    const result = SRS.updateCard(item.card, stars, this.srsState);
+    this.srsState.cards[item.chunk.id] = result.card;
     this.srsState.totalReviews += 1;
     SRS.updateStreak(this.srsState);
     SRS.save(this.srsState);
+    
+    // Show adaptive message if any
+    if (result.adaptiveResult && result.adaptiveResult.message) {
+      this._showAdaptiveMessage(result.adaptiveResult.message);
+    }
+    
     this._updateHeaderStats();
+    this._updateLevelBadge();
 
     this.state.recallIndex++;
     if (this.state.recallIndex >= this.state.recallBatch.length) {
@@ -214,6 +319,19 @@ const App = {
     } else {
       this._showGymCard();
     }
+  },
+
+  _showAdaptiveMessage(message) {
+    const el = document.getElementById('adaptive-message');
+    el.textContent = message;
+    el.classList.remove('hidden');
+    // Auto-hide after 4 seconds
+    setTimeout(() => this._hideAdaptiveMessage(), 4000);
+  },
+
+  _hideAdaptiveMessage() {
+    const el = document.getElementById('adaptive-message');
+    el.classList.add('hidden');
   },
 
   /* --- Speech validation in Gym card --- */
@@ -281,15 +399,34 @@ const App = {
       const data = JSON.parse(stored);
       if (data.date === today) { this.state.dailyChunks = data.chunks; return; }
     }
-    const shuffled = [...REPOSITORY.chunks].sort(() => Math.random() - 0.5);
+    // Filter chunks by current level
+    const available = REPOSITORY.chunks.filter(c => c.difficulty <= this.srsState.userLevel);
+    const shuffled = [...available].sort(() => Math.random() - 0.5);
     this.state.dailyChunks = shuffled.slice(0, 3);
     localStorage.setItem('web-ingles-daily', JSON.stringify({ date: today, chunks: this.state.dailyChunks }));
   },
 
   /* ======================== PHASE 2: MEETING SIMULATOR ======================== */
   _loadMeetingThread() {
-    const templates = REPOSITORY.meetingTemplates;
-    const template = templates[Math.floor(Math.random() * templates.length)];
+    // Filter templates by current level
+    const availableTemplates = REPOSITORY.meetingTemplates.filter(
+      t => t.difficulty <= this.srsState.userLevel
+    );
+    
+    if (availableTemplates.length === 0) {
+      // Fallback to simplest template
+      const fallback = REPOSITORY.meetingTemplates.filter(t => t.difficulty === 1);
+      if (fallback.length > 0) {
+        this._renderThread(fallback[0]);
+      }
+      return;
+    }
+    
+    const template = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
+    this._renderThread(template);
+  },
+
+  _renderThread(template) {
     this.state.currentThread = template;
 
     const threadEl = document.getElementById('sim-thread');
@@ -448,6 +585,7 @@ const App = {
     document.getElementById('stats-overlay').classList.toggle('hidden');
     if (!document.getElementById('stats-overlay').classList.contains('hidden')) {
       this._renderStats();
+      this._renderLevelSelector();
     }
   },
 
@@ -460,22 +598,31 @@ const App = {
 
     const chartEl = document.getElementById('stats-chart');
     chartEl.innerHTML = '';
-    for (const [cat, data] of Object.entries(stats.categoryData)) {
+
+    // Show per-level mastery bars
+    for (let level = 1; level <= 4; level++) {
+      const data = stats.levelData[level];
+      if (!data || data.total === 0) continue;
       const percent = data.total > 0 ? (data.mastered / data.total) * 100 : 0;
+      
       const col = document.createElement('div');
       col.style.display = 'flex';
       col.style.flexDirection = 'column';
       col.style.alignItems = 'center';
       col.style.flex = '1';
-      col.style.minWidth = '40px';
+      col.style.minWidth = '50px';
 
       const bar = document.createElement('div');
       bar.className = 'chart-bar';
       bar.style.height = `${Math.max(4, percent)}%`;
+      if (level === 1) bar.style.background = '#58a6ff';
+      else if (level === 2) bar.style.background = '#3fb950';
+      else if (level === 3) bar.style.background = '#d29922';
+      else bar.style.background = '#f85149';
 
       const label = document.createElement('div');
       label.className = 'chart-bar-label';
-      label.textContent = cat.replace('_', ' ').slice(0, 8);
+      label.textContent = `Nivel ${level}`;
 
       const pct = document.createElement('div');
       pct.className = 'chart-bar-label';
@@ -488,6 +635,35 @@ const App = {
     }
   },
 
+  _renderLevelSelector() {
+    const info = SRS.getLevelInfo(this.srsState);
+    const buttons = document.querySelectorAll('.btn-level');
+    
+    buttons.forEach(btn => {
+      const level = parseInt(btn.dataset.level);
+      btn.classList.remove('active', 'locked');
+      
+      if (level === info.currentLevel) {
+        btn.classList.add('active');
+      }
+      if (level > info.maxUnlocked) {
+        btn.classList.add('locked');
+        btn.disabled = true;
+      } else {
+        btn.disabled = false;
+      }
+    });
+
+    // Update info text
+    const infoEl = document.getElementById('level-adaptive-info');
+    if (info.recentAvg) {
+      infoEl.textContent = `Media reciente: ${info.recentAvg}/10 | Siguiente nivel: ${info.nextLevelThreshold}/10`;
+    } else {
+      infoEl.textContent = 'Revisa al menos 7 tarjetas para ver tu progreso adaptativo.';
+    }
+    infoEl.className = 'level-adaptive-info';
+  },
+
   _resetData() {
     if (confirm('¿Seguro que quieres borrar todo tu progreso? Esta acción no se puede deshacer.')) {
       localStorage.removeItem('web-ingles-srs');
@@ -496,6 +672,7 @@ const App = {
       SRS.save(this.srsState);
       this._renderStats();
       this._updateHeaderStats();
+      this._updateLevelBadge();
       this._startRecallRound();
     }
   },

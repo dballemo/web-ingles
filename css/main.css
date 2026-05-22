@@ -79,6 +79,20 @@ body {
   font-size: 0.8rem;
   color: var(--text-secondary);
 }
+.level-badge {
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: help;
+  transition: all var(--transition);
+}
+.level-badge:hover {
+  background: rgba(88, 166, 255, 0.1);
+}
 .btn-icon {
   background: none;
   border: 1px solid var(--border);
@@ -341,6 +355,55 @@ body {
 .btn-forgot { background: var(--danger); color: #fff; }
 .btn-easy:hover, .btn-hard:hover, .btn-forgot:hover { opacity: 0.85; }
 
+/* === Star Rating === */
+.eval-stars {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.star-btn {
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  filter: grayscale(0.7);
+  opacity: 0.6;
+}
+.star-btn:hover,
+.star-btn.hover {
+  filter: grayscale(0);
+  opacity: 1;
+  transform: scale(1.15);
+  border-color: var(--accent);
+  background: rgba(88, 166, 255, 0.15);
+}
+.star-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  min-height: 1.2em;
+  transition: color 0.2s ease;
+}
+.adaptive-message {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: rgba(63, 185, 80, 0.1);
+  border: 1px solid var(--success);
+  color: var(--success);
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+.adaptive-message.hidden {
+  display: none;
+}
+
 /* Gym done state */
 .gym-done {
   text-align: center;
@@ -557,6 +620,81 @@ body {
 }
 
 /* ===========================
+   Level Selector in Stats
+   =========================== */
+.level-selector {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.level-selector h3 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.level-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.level-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.btn-level {
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+}
+.btn-level small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.btn-level:hover {
+  border-color: var(--accent);
+  background: rgba(88, 166, 255, 0.1);
+}
+.btn-level.active {
+  border-color: var(--success);
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--success);
+}
+.btn-level.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+.btn-level.locked::after {
+  content: '🔒';
+  display: block;
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+.level-adaptive-info {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  min-height: 1.2em;
+}
+.level-adaptive-info.level-changed {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* ===========================
    Stats Overlay
    =========================== */
 .stats-overlay {
@@ -657,4 +795,7 @@ body {
   .eval-buttons { flex-direction: column; align-items: center; }
   .sim-chunk-list { flex-direction: column; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .level-buttons { grid-template-columns: repeat(2, 1fr); }
+  .eval-stars { gap: 2px; }
+  .star-btn { padding: 6px 8px; font-size: 1rem; }
 }
